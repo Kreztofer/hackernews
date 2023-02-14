@@ -4,22 +4,24 @@ import {
   SafeAreaView,
   Image,
   TouchableOpacity,
-  ScrollView,
   FlatList,
+  StatusBar,
   ActivityIndicator,
 } from 'react-native';
 import React, { useState, useEffect } from 'react';
 import logo from '../assets/logo2.png';
-import profile from '../assets/profile.png';
+import profile from '../assets/profile.jpg';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 
-const HomeScreen = ({ props }) => {
+const HomeScreen = () => {
   const navigation = useNavigation();
   const [storys, setStorys] = useState([]);
   const [storyIds, setStoryIds] = useState([]);
-  const [currentPage, setcurrentPage] = useState();
+  const [currentPage, setcurrentPage] = useState(10);
+  const [topstories, setTopstories] = useState([]);
+  const [offset, setoffset] = useState(1);
 
   // Api Call
   useEffect(() => {
@@ -80,8 +82,6 @@ const HomeScreen = ({ props }) => {
     }
   }, [storyIds]);
 
-  const topstories = storys.splice(0, 10);
-
   const header = () => {
     return (
       <View className="flex flex-row justify-between items-center mx-4 pt-[40px]">
@@ -89,8 +89,6 @@ const HomeScreen = ({ props }) => {
       </View>
     );
   };
-
-  const loadMoreItem = () => {};
 
   const renderLoader = () => {
     return (
@@ -116,16 +114,39 @@ const HomeScreen = ({ props }) => {
     );
   };
 
+  const windowSize = storys.length > 50 ? storys.length / 4 : 21;
+  let num = 30;
+  let initialLoadNumber = 20;
+
+  useEffect(() => {
+    if (topstories.length < storys.length) {
+      if (offset == 1) {
+        setTopstories(storys.slice(0, offset * initialLoadNumber));
+      }
+    }
+  }, [storys]);
+
+  const getData = () => {
+    if (topstories.length < storys.length && storys.length != 0) {
+      setoffset(offset + 1);
+      setTopstories(storys.slice(0, offset * num));
+    }
+  };
+
   return (
-    <SafeAreaView className="bg-white pt-[60px] h-[100%]">
+    <SafeAreaView className="bg-white pt-[40px] h-[100%]">
       {/* Header */}
+      <StatusBar backgroundColor="#fff" barStyle="dark-content" />
       <View className="border-b border-[#dadada]">
         <View className="flex pb-3 flex-row items-center justify-between mx-4 ">
           <TouchableOpacity>
             <Image source={logo} />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => navigation.openDrawer()}>
-            <Image source={profile} />
+            <Image
+              className="rounded-full h-[50px] w-[50px]"
+              source={profile}
+            />
           </TouchableOpacity>
         </View>
       </View>
@@ -137,8 +158,14 @@ const HomeScreen = ({ props }) => {
         renderItem={renderItem}
         keyExtractor={(item) => item.id}
         ListFooterComponent={renderLoader}
-        onEndReached={loadMoreItem}
-        onEndReachedThreshold={0}
+        onEndReached={getData}
+        onEndReachedThreshold={
+          offset < 10 ? offset * (offset == 1 ? 2 : 2) : 20
+        }
+        windowSize={windowSize}
+        maxToRenderPerBatch={num}
+        removeClippedSubviews={true}
+        updateCellsBatchingPeriod={num / 2}
       />
     </SafeAreaView>
   );
